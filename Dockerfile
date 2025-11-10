@@ -1,5 +1,7 @@
 FROM public.ecr.aws/lambda/python:3.11
 
+RUN yum install -y tar xz && yum clean all
+
 RUN mkdir -p /opt/bin && \
     curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
     -o ffmpeg.tar.xz && \
