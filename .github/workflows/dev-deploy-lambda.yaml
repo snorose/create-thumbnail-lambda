@@ -1,4 +1,4 @@
-name: Deploy to ECR and Lambda
+name: Dev Deploy ECR
 
 on:
   push:
