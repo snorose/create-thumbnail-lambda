@@ -1,3 +1,4 @@
+# 최종 수정: 2025-11-10
 FROM public.ecr.aws/lambda/python:3.12
 
 RUN yum update -y && \
