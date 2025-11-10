@@ -1,7 +1,7 @@
 FROM public.ecr.aws/lambda/python:3.11
 
 RUN yum update -y && \
-    amazon-linux-extras install -y epel && \
+    yum install -y epel-release && \
     yum install -y ffmpeg && \
     yum clean all
 
