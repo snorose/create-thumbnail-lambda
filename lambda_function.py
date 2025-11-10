@@ -12,7 +12,7 @@ sqs_queue_url = os.environ.get('SQS_QUEUE_URL')
 IMG_EXT_LIST = ["jpg","jpeg","png","jfif","bmp","webp"]
 VDO_EXT_LIST = ["mp4","mov","avi","mkv"]
 
-FFMPEG_BIN = "/usr/bin/ffmpeg"
+FFMPEG_BIN = "/opt/bin/ffmpeg"
 
 def create_video_thumbnail_image(download_path, resized_path, quality=70):
     """
