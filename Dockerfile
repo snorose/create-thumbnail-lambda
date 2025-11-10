@@ -1,11 +1,12 @@
 FROM public.ecr.aws/lambda/python:3.11
 
-RUN curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
-    -o ffmpeg.tar.xz \
-    && tar -xJf ffmpeg.tar.xz \
-    && mv ffmpeg-*-static/ffmpeg /usr/local/bin/ffmpeg \
-    && mv ffmpeg-*-static/ffprobe /usr/local/bin/ffprobe \
-    && rm -rf ffmpeg*
+RUN curl -L https://raw.githubusercontent.com/eugeneware/ffmpeg-static/master/bin/linux/x64/ffmpeg \
+    -o /usr/local/bin/ffmpeg \
+    && chmod +x /usr/local/bin/ffmpeg
+
+RUN curl -L https://raw.githubusercontent.com/eugeneware/ffmpeg-static/master/bin/linux/x64/ffprobe \
+    -o /usr/local/bin/ffprobe \
+    && chmod +x /usr/local/bin/ffprobe
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt
