@@ -65,7 +65,7 @@ def delete_existing_thumbnails(bucket, prefix):
                 Delete={'Objects': objects_to_delete}
             )
 
-def send_optimization_complete_message(s3_file_name, success, error_message=None):
+def send_optimization_complete_message(post_id, s3_file_name, success, error_message=None):
     """
     썸네일 최적화 완료 메시지를 SQS로 전송
     """
@@ -74,6 +74,7 @@ def send_optimization_complete_message(s3_file_name, success, error_message=None
         return
     
     message = {
+        "post_id": post_id,
         "s3FileName": s3_file_name,
         "success": success
     }
@@ -148,6 +149,7 @@ def lambda_handler(event, context):
             else:
                 error_msg = f"Attachment extension {ext} unsupported: {filename}"
                 send_optimization_complete_message(
+                    post_id=post_id,
                     s3_file_name=filename,
                     success=False,
                     error_message=error_msg
@@ -174,6 +176,7 @@ def lambda_handler(event, context):
             
             # 성공 메시지 전송
             send_optimization_complete_message(
+                post_id=post_id,
                 s3_file_name=filename,
                 success=True
             )
@@ -189,6 +192,7 @@ def lambda_handler(event, context):
         # 실패 메시지 전송
         if filename:  # 파일명이 있는 경우에만 전송
             send_optimization_complete_message(
+                post_id=post_id,
                 s3_file_name=filename,
                 success=False,
                 error_message=str(e)
