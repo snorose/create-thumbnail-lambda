@@ -1,4 +1,5 @@
 import boto3
+import aioboto3
 import os
 import json
 from PIL import Image, ImageOps
@@ -65,7 +66,7 @@ def delete_existing_thumbnails(bucket, prefix):
                 Delete={'Objects': objects_to_delete}
             )
 
-def send_optimization_complete_message(s3_file_name, success, error_message=None):
+async def send_optimization_complete_message(s3_file_name, success, error_message=None):
     """
     썸네일 최적화 완료 메시지를 SQS로 전송
     """
@@ -80,19 +81,25 @@ def send_optimization_complete_message(s3_file_name, success, error_message=None
     
     if error_message:
         message["errorMessage"] = error_message
-    
+
+    # aioboto3 세션 생성
+    session = aioboto3.Session()
     try:
-        sqs_client.send_message(
-            QueueUrl=sqs_queue_url,
-            MessageBody=json.dumps(message)
-        )
-        print(f"[SQS] Sent optimization complete message: {message}")
+        async with session.client("sqs") as sqs_client:
+            response = await sqs_client.send_message(
+                QueueUrl=sqs_queue_url,
+                MessageBody=json.dumps(message)
+            )
+            # 전송 결과 확인
+            if 'MessageId' in response:
+                print(f"[SQS] Sent success. MessageId: {response['MessageId']}; Sent optimization complete message: {message}")
+
     except Exception as e:
         print(f"[SQS ERROR] Failed to send optimization complete message: {e}")
         # SQS 전송 실패 시 Lambda 실패로 처리하여 재시도 유발 (최대 3회)
         raise RuntimeError(f"SQS message send failed: {e}")
 
-def lambda_handler(event, context):
+async def lambda_handler(event, context):
     """
     event 예시 구조:
     {
@@ -147,7 +154,7 @@ def lambda_handler(event, context):
                 create_video_thumbnail_image(download_path, upload_path)
             else:
                 error_msg = f"Attachment extension {ext} unsupported: {filename}"
-                send_optimization_complete_message(
+                await send_optimization_complete_message(
                     s3_file_name=filename,
                     success=False,
                     error_message=error_msg
@@ -173,7 +180,7 @@ def lambda_handler(event, context):
             print(f"Uploaded thumbnail to {thumbnail_bucket}/{thumb_key}")
             
             # 성공 메시지 전송
-            send_optimization_complete_message(
+            await send_optimization_complete_message(
                 s3_file_name=filename,
                 success=True
             )
@@ -188,7 +195,7 @@ def lambda_handler(event, context):
         
         # 실패 메시지 전송
         if filename:  # 파일명이 있는 경우에만 전송
-            send_optimization_complete_message(
+            await send_optimization_complete_message(
                 s3_file_name=filename,
                 success=False,
                 error_message=str(e)
