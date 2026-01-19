@@ -1,16 +1,17 @@
-# 마지막 테스트
 FROM public.ecr.aws/lambda/python:3.11
 
-RUN yum install -y tar xz && yum clean all
+RUN yum install -y tar xz curl && yum clean all
 
 RUN mkdir -p /opt/bin && \
-    curl -L https://github.com/ffmpeg/ffmpeg/releases/download/n6.1/ffmpeg-n6.1-linux64.tar.xz \
+    curl -L https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz \
     -o ffmpeg.tar.xz && \
     tar -xJf ffmpeg.tar.xz && \
     cp ffmpeg-*/bin/ffmpeg /opt/bin/ && \
     cp ffmpeg-*/bin/ffprobe /opt/bin/ && \
     chmod +x /opt/bin/ffmpeg /opt/bin/ffprobe && \
     rm -rf ffmpeg*
+
+ENV PATH="/opt/bin:${PATH}"
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt
