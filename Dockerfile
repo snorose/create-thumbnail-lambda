@@ -4,11 +4,11 @@ FROM public.ecr.aws/lambda/python:3.11
 RUN yum install -y tar xz && yum clean all
 
 RUN mkdir -p /opt/bin && \
-    curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
+    curl -L https://github.com/ffmpeg/ffmpeg/releases/download/n6.1/ffmpeg-n6.1-linux64.tar.xz \
     -o ffmpeg.tar.xz && \
     tar -xJf ffmpeg.tar.xz && \
-    mv ffmpeg-*-static/ffmpeg /opt/bin/ffmpeg && \
-    mv ffmpeg-*-static/ffprobe /opt/bin/ffprobe && \
+    cp ffmpeg-*/bin/ffmpeg /opt/bin/ && \
+    cp ffmpeg-*/bin/ffprobe /opt/bin/ && \
     chmod +x /opt/bin/ffmpeg /opt/bin/ffprobe && \
     rm -rf ffmpeg*
 
