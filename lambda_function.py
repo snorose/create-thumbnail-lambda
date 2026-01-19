@@ -169,7 +169,8 @@ def lambda_handler(event, context):
                     thumb_key,
                     ExtraArgs={
                         'ContentType': 'image/webp',
-                        'ACL': 'public-read'
+                        'ACL': 'public-read',
+                        'CacheControl': 'public, max-age=31536000'
                     }
                 )
             print(f"Uploaded thumbnail to {thumbnail_bucket}/{thumb_key}")
