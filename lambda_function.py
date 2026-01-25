@@ -1,13 +1,10 @@
 import boto3
 import os
-import json
 from PIL import Image, ImageOps
 import subprocess
 
 s3_client = boto3.client('s3')
-sqs_client = boto3.client('sqs')
 thumbnail_bucket = 'snorose-public-bucket'
-sqs_queue_url = os.environ.get('SQS_QUEUE_URL')
 
 IMG_EXT_LIST = ["jpg","jpeg","png","jfif","bmp","webp"]
 VDO_EXT_LIST = ["mp4","mov"]
@@ -65,34 +62,6 @@ def delete_existing_thumbnails(bucket, prefix):
                 Delete={'Objects': objects_to_delete}
             )
 
-def send_optimization_complete_message(post_id, s3_file_name, success, error_message=None):
-    """
-    썸네일 최적화 완료 메시지를 SQS로 전송
-    """
-    if not sqs_queue_url:
-        print("SQS_QUEUE_URL 환경변수가 설정되지 않았습니다.")
-        return
-    
-    message = {
-        "post_id": post_id,
-        "s3FileName": s3_file_name,
-        "success": success
-    }
-    
-    if error_message:
-        message["errorMessage"] = error_message
-    
-    try:
-        sqs_client.send_message(
-            QueueUrl=sqs_queue_url,
-            MessageBody=json.dumps(message)
-        )
-        print(f"[SQS] Sent optimization complete message: {message}")
-    except Exception as e:
-        print(f"[SQS ERROR] Failed to send optimization complete message: {e}")
-        # SQS 전송 실패 시 Lambda 실패로 처리하여 재시도 유발 (최대 3회)
-        raise RuntimeError(f"SQS message send failed: {e}")
-
 def lambda_handler(event, context):
     """
     event 예시 구조:
@@ -148,12 +117,6 @@ def lambda_handler(event, context):
                 create_video_thumbnail_image(download_path, upload_path)
             else:
                 error_msg = f"Attachment extension {ext} unsupported: {filename}"
-                send_optimization_complete_message(
-                    post_id=post_id,
-                    s3_file_name=filename,
-                    success=False,
-                    error_message=error_msg
-                )
                 return {
                     "statusCode": 400,
                     "body": error_msg
@@ -174,13 +137,6 @@ def lambda_handler(event, context):
                     }
                 )
             print(f"Uploaded thumbnail to {thumbnail_bucket}/{thumb_key}")
-            
-            # 성공 메시지 전송
-            send_optimization_complete_message(
-                post_id=post_id,
-                s3_file_name=filename,
-                success=True
-            )
 
             return {
                 "statusCode": 200,
@@ -189,16 +145,7 @@ def lambda_handler(event, context):
 
     except Exception as e:
         print(f"Error processing {key}: {e}")
-        
-        # 실패 메시지 전송
-        if filename:  # 파일명이 있는 경우에만 전송
-            send_optimization_complete_message(
-                post_id=post_id,
-                s3_file_name=filename,
-                success=False,
-                error_message=str(e)
-            )
-        
+
         return {
             "statusCode": 500,
             "body": f"Failed to create thumbnail: {str(e)}"
