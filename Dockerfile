@@ -20,5 +20,8 @@ RUN chmod +x /opt/bin/ffmpeg
 COPY requirements.txt ${LAMBDA_TASK_ROOT}
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 소스 코드 복사
+COPY lambda_function.py ${LAMBDA_TASK_ROOT}/
+
 # 실행 핸들러 지정
 CMD [ "lambda_function.lambda_handler" ]
