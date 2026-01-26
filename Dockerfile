@@ -1,21 +1,24 @@
-FROM public.ecr.aws/lambda/python:3.11
+# 파이썬 버전 3.12 명시
+FROM public.ecr.aws/lambda/python:3.12
 
-RUN yum install -y tar xz curl && yum clean all
+# 시스템 패키지 업데이트 및 FFmpeg 다운로드를 위한 도구 설치
+RUN dnf update -y && \
+    dnf install -y tar xz wget && \
+    dnf clean all
 
+# FFmpeg 정적 빌드 다운로드 및 설치 (ffmpeg만 설치)
 RUN mkdir -p /opt/bin && \
-    curl -L https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-linux64-gpl.tar.xz \
-    -o ffmpeg.tar.xz && \
-    tar -xJf ffmpeg.tar.xz && \
-    cp ffmpeg-*/bin/ffmpeg /opt/bin/ && \
-    cp ffmpeg-*/bin/ffprobe /opt/bin/ && \
-    chmod +x /opt/bin/ffmpeg /opt/bin/ffprobe && \
-    rm -rf ffmpeg*
+    wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
+    tar -xvf ffmpeg-release-amd64-static.tar.xz && \
+    mv ffmpeg-*-amd64-static/ffmpeg /opt/bin/ffmpeg && \
+    rm -rf ffmpeg-*-static*
 
-ENV PATH="/opt/bin:${PATH}"
+# /opt/bin 실행 권한 부여 (ffmpeg만)
+RUN chmod +x /opt/bin/ffmpeg
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# 파이썬 의존성 설치
+COPY requirements.txt ${LAMBDA_TASK_ROOT}
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY lambda_function.py ${LAMBDA_TASK_ROOT}/
-
+# 실행 핸들러 지정
 CMD [ "lambda_function.lambda_handler" ]

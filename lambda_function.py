@@ -23,8 +23,18 @@ def create_video_thumbnail_image(download_path, resized_path, quality=70):
         "-q:v", str(quality),
         resized_path
     ]
-    subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    create_thumbnail_image(resized_path, resized_path)
+    if os.path.exists(FFMPEG_BIN):
+        os.chmod(FFMPEG_BIN, 0o755)
+
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        create_thumbnail_image(resized_path, resized_path)
+        
+    except subprocess.CalledProcessError as e:
+        print(f"!!! FFMPEG ERROR !!!")
+        print(f"STDERR: {e.stderr}")
+        print(f"STDOUT: {e.stdout}")
+        raise e
 
 def create_thumbnail_image(image_path, resized_path, size=256, quality=30):
     """
