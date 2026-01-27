@@ -3,12 +3,13 @@ import json
 import base64
 import re
 import time
+import os
 
-REGION_NAME = "ap-northeast-2"
-BUCKET_NAME = "snorose-bucket"
+REGION_NAME = os.environ.get('REGION_NAME')
+BUCKET_NAME = os.environ.get('BUCKET_NAME')
 IMAGE_KEY = "test/12345/test_video.mp4"
-FUNC_CON = "CreateThumbnail"
-FUNC_IMG = "CreateThumbnailECR"
+LAMBDA_FUNCTION_NAME = os.environ.get('LAMBDA_FUNCTION_NAME')
+ECR_REPOSITORY_NAME = os.environ.get('ECR_REPOSITORY_NAME')
 
 client = boto3.client('lambda', region_name=REGION_NAME)
 
@@ -91,9 +92,9 @@ if __name__ == "__main__":
     print("=== Lambda 성능 비교 테스트 시작 ===\n")
     
     # Console 버전 테스트
-    run_test(FUNC_CON, "Console Version")
+    run_test(LAMBDA_FUNCTION_NAME, "Console Version")
     
     # Container 버전 테스트
-    run_test(FUNC_IMG, "Container Image Version")
+    run_test(ECR_REPOSITORY_NAME, "Container Image Version")
     
     print("\n=== 테스트 완료 ===")

@@ -4,7 +4,7 @@ from PIL import Image, ImageOps
 import subprocess
 
 s3_client = boto3.client('s3')
-thumbnail_bucket = 'snorose-public-bucket'
+thumbnail_bucket = os.environ.get('THUMBNAIL_BUCKET')
 
 IMG_EXT_LIST = ["jpg","jpeg","png","jfif","bmp","webp"]
 VDO_EXT_LIST = ["mp4","mov"]
