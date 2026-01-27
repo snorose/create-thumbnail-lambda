@@ -54,3 +54,16 @@ jobs:
         aws lambda update-function-code \
           --function-name $LAMBDA_FUNCTION_NAME \
           --image-uri ${{ steps.build-image.outputs.image_uri }}
+
+    # Lambda 환경 변수 설정
+    - name: Update Lambda Environment Variables
+      run: |
+        aws lambda update-function-configuration \
+          --function-name ${{ vars.LAMBDA_FUNCTION_NAME }} \
+          --environment "Variables={ \
+            REGION_NAME=${{ vars.REGION_NAME }}, \
+            LAMBDA_FUNCTION_NAME=${{ vars.LAMBDA_FUNCTION_NAME }}, \
+            ECR_REPOSITORY_NAME=${{ vars.ECR_REPOSITORY_NAME }}, \
+            BUCKET_NAME=${{ vars.BUCKET_NAME }}, \
+            THUMBNAIL_BUCKET=${{ vars.THUMBNAIL_BUCKET }} \
+          }"
