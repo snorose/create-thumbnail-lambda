@@ -2,7 +2,7 @@ name: Deploy to Lambda (ECR)
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "develop", "main" ]
 
 # OIDC 인증을 위한 권한 설정
 permissions:
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # 브랜치에 따라 사용할 환경 선택
-    environment: ${{ github.ref == 'refs/heads/main' && 'DEV' }}
+    environment: ${{ github.ref == 'refs/heads/main' && 'PROD' || 'DEV' }}
 
     steps:
     - name: Checkout code
