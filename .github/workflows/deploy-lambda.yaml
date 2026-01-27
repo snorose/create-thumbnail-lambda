@@ -52,7 +52,7 @@ jobs:
     - name: Deploy new image to AWS Lambda
       run: |
         aws lambda update-function-code \
-          --function-name $LAMBDA_FUNCTION_NAME \
+          --function-name ${{ vars.LAMBDA_FUNCTION_NAME }} \
           --image-uri ${{ steps.build-image.outputs.image_uri }}
 
     # Lambda 환경 변수 설정
