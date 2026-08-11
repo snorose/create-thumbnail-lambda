@@ -105,8 +105,29 @@ jobs:
           
           echo "image_uri=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
-      # Lambda 함수 업데이트
-      - name: Deploy new image to AWS Lambda
+      # Lambda 함수 존재 여부 확인
+      - name: Check if Lambda function exists
+        id: check-lambda
+        shell: bash
+        run: |
+          set +e
+          RESULT=$(aws lambda get-function \
+            --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}" 2>&1)
+          STATUS=$?
+          set -e
+
+          if [[ $STATUS -eq 0 ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$RESULT" == *"ResourceNotFoundException"* ]]; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$RESULT"
+            exit $STATUS
+          fi
+
+      # 기존 Lambda 함수 코드 업데이트
+      - name: Update existing Lambda function code
+        if: steps.check-lambda.outputs.exists == 'true'
         run: |
           aws lambda update-function-code \
             --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}" \
@@ -114,15 +135,18 @@ jobs:
 
       # 코드 업데이트가 완료될 때까지 대기
       - name: Wait for Lambda function update to complete
+        if: steps.check-lambda.outputs.exists == 'true'
         run: |
           aws lambda wait function-updated \
             --function-name ${{ vars.LAMBDA_FUNCTION_NAME }}
 
-      # Lambda 환경 변수 설정
-      - name: Update Lambda Environment Variables
+      # 기존 Lambda 함수의 실행 역할 및 환경 변수 업데이트
+      - name: Update existing Lambda function configuration
+        if: steps.check-lambda.outputs.exists == 'true'
         run: |
           aws lambda update-function-configuration \
             --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}" \
+            --role "${{ vars.LAMBDA_EXECUTION_ROLE_ARN }}" \
             --environment "Variables={ \
               REGION_NAME=${{ vars.AWS_REGION }}, \
               LAMBDA_FUNCTION_NAME=${{ vars.LAMBDA_FUNCTION_NAME }}, \
@@ -130,6 +154,37 @@ jobs:
               BUCKET_NAME=${{ vars.BUCKET_NAME }}, \
               THUMBNAIL_BUCKET=${{ vars.THUMBNAIL_BUCKET }} \
             }"
+
+      # Lambda 함수가 없으면 신규 생성
+      - name: Create Lambda function
+        if: steps.check-lambda.outputs.exists == 'false'
+        run: |
+          aws lambda create-function \
+            --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}" \
+            --package-type Image \
+            --code "ImageUri=${{ steps.build-image.outputs.image_uri }}" \
+            --role "${{ vars.LAMBDA_EXECUTION_ROLE_ARN }}" \
+            --environment "Variables={ \
+              REGION_NAME=${{ vars.AWS_REGION }}, \
+              LAMBDA_FUNCTION_NAME=${{ vars.LAMBDA_FUNCTION_NAME }}, \
+              ECR_REPOSITORY_NAME=${{ vars.ECR_REPOSITORY_NAME }}, \
+              BUCKET_NAME=${{ vars.BUCKET_NAME }}, \
+              THUMBNAIL_BUCKET=${{ vars.THUMBNAIL_BUCKET }} \
+            }"
+
+      # 기존 Lambda 설정 업데이트가 완료될 때까지 대기
+      - name: Wait for Lambda configuration update to complete
+        if: steps.check-lambda.outputs.exists == 'true'
+        run: |
+          aws lambda wait function-updated \
+            --function-name ${{ vars.LAMBDA_FUNCTION_NAME }}
+
+      # 신규 Lambda 함수가 Active 상태가 될 때까지 대기
+      - name: Wait for new Lambda function to become active
+        if: steps.check-lambda.outputs.exists == 'false'
+        run: |
+          aws lambda wait function-active-v2 \
+            --function-name ${{ vars.LAMBDA_FUNCTION_NAME }}
 
       - name: Summarize deployment metadata
         shell: bash
